@@ -9,7 +9,6 @@ type NodeMap = HashMap<NodeId, Node>;
 
 #[derive(Debug, Clone)]
 pub enum Node {
-    // 右端はmaxのnodeを指す,中央のvecは左側のnodeのpointer意味する
     Mid(NodeId, Vec<Key>, Vec<NodeId>),
     Leaf(NodeId, Vec<Key>, Option<NodeId>),
 }
