@@ -1,4 +1,4 @@
-use std::{collections::HashMap, vec};
+use std::{collections::HashMap, panic::Location, vec};
 use thiserror::Error;
 
 type Key = usize;
@@ -83,7 +83,8 @@ impl BTree {
         let current_node = self.node_map.get_mut(&current_node_id).unwrap();
         let insert_result = match current_node {
             Node::Leaf(id, keys, sibling) => {
-                insert_key(key.clone(), keys);
+                let location = get_key_location(key, keys);
+                insert_key(location, key.clone(), keys);
 
                 if keys.len() < self.node_key_num {
                     None
@@ -129,7 +130,9 @@ impl BTree {
                     Node::Leaf(_, _, _) => Ok(Some((min_key, right_node_id))),
                     Node::Mid(_, keys, node_ids) => {
                         println!("min_key: {:?} right_node_id: {:?}", min_key, right_node_id);
-                        insert_key_node_id(min_key, right_node_id, keys, node_ids);
+                        let location = get_key_location(&min_key, keys);
+                        insert_key(location, min_key, keys);
+                        insert_node_id(location, right_node_id, node_ids);
 
                         if keys.len() < self.node_key_num {
                             Ok(None)
@@ -159,43 +162,31 @@ impl BTree {
     }
 }
 
-fn insert_key(key: Key, keys: &mut Vec<Key>) {
-    let len = keys.len();
-    if len == 0 {
-        keys.push(key);
-        return;
-    }
-
+fn get_key_location(key: &Key, keys: &mut Vec<Key>) -> usize {
     let mut location = keys.len();
     for (i, k) in keys.iter().enumerate() {
-        if &key <= k {
+        if key <= k {
             location = i;
         }
     }
-    let mut separated_keys = keys.split_off(location);
-
-    keys.push(key);
-    keys.append(&mut separated_keys);
+    location
 }
 
-fn insert_key_node_id(key: Key, node_id: NodeId, keys: &mut Vec<Key>, node_ids: &mut Vec<NodeId>) {
+fn insert_key(location: usize, key: Key, keys: &mut Vec<Key>) -> usize {
     let len = keys.len();
     if len == 0 {
         keys.push(key);
-        return;
+        return 0;
     }
 
-    let mut location = keys.len();
-    for (i, k) in keys.iter().enumerate() {
-        if &key <= k {
-            location = i;
-        }
-    }
     let mut separated_keys = keys.split_off(location);
 
     keys.push(key);
     keys.append(&mut separated_keys);
+    location
+}
 
+fn insert_node_id(location: usize, node_id: NodeId, node_ids: &mut Vec<NodeId>) {
     let mut separated_node_ids = node_ids.split_off(location + 1);
     node_ids.push(node_id);
     node_ids.append(&mut separated_node_ids);
